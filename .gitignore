@@ -218,3 +218,24 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ---------------- project specific ----------------
+# local data and raw downloads (never commit datasets)
+data/
+bench/
+datasets/**/raw/
+*.tar
+*.zip
+*.part
+# model weights and checkpoints
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.ckpt
+*.bin
+runs/
+# cached cloud API responses and local caches
+results/**/api_cache/
+.cache/
+wandb/

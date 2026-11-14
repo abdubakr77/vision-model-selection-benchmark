@@ -1,0 +1,1 @@
+"""Vision Model Selection Benchmark."""
