@@ -29,6 +29,7 @@ Remaining normal images are marked `unused` in `split.csv`.
 - **Masks look black but are not empty.** VisA masks store the defect type as the pixel value (0, 1, 3, 4 ...), not 255. Any threshold like `> 127` returns an empty mask. Use `> 0`.
 - `pcb1` is an HC-SR04 ultrasonic sensor board. Defect size varies a lot: a bent pin covers about 0.1% of the image, a damaged sensor part about 10%. This spread is useful for failure analysis.
 - Images are 1404 x 1070 and masks have the same size.
+- Boxes are derived from masks (dilate 9 px, connected components, drop specks under 15 px). Boxes that overlap or sit inside each other are merged into one; separate defects (for example two bent pins) keep separate boxes.
 
 ## Preparation
 

@@ -201,13 +201,28 @@ def mask_to_boxes(mask_bin):
     k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (BOX_DILATE_PX, BOX_DILATE_PX))
     m = cv2.dilate(mask_bin, k)
     n, _, stats, _ = cv2.connectedComponentsWithStats(m, connectivity=8)
-    boxes = []
+    xyxy = []
     for i in range(1, n):
         x, y, bw, bh, area = [int(v) for v in stats[i]]
         if area < BOX_MIN_AREA:
             continue
-        boxes.append([(x + bw / 2) / w, (y + bh / 2) / h, bw / w, bh / h])
-    return boxes
+        xyxy.append([x, y, x + bw, y + bh])
+    # merge boxes that overlap or sit inside each other into one box (repeat until stable),
+    # boxes that are apart (for example two separate bent pins) stay separate
+    merged = True
+    while merged:
+        merged = False
+        for i in range(len(xyxy)):
+            for j in range(i + 1, len(xyxy)):
+                a, b = xyxy[i], xyxy[j]
+                if min(a[2], b[2]) > max(a[0], b[0]) and min(a[3], b[3]) > max(a[1], b[1]):
+                    xyxy[i] = [min(a[0], b[0]), min(a[1], b[1]), max(a[2], b[2]), max(a[3], b[3])]
+                    del xyxy[j]
+                    merged = True
+                    break
+            if merged:
+                break
+    return [[(x0 + x1) / 2 / w, (y0 + y1) / 2 / h, (x1 - x0) / w, (y1 - y0) / h] for x0, y0, x1, y1 in xyxy]
 
 
 # ---------------- build dataset ----------------
