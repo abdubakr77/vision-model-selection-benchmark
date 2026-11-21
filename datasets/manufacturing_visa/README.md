@@ -18,11 +18,13 @@ Thresholds are tuned on the validation split only.
 
 | Split | Defective | Normal |
 |---|---|---|
-| train | 55 | 165 |
-| val | 20 | 20 |
-| test | 25 | 25 |
+| train | 50 | 150 |
+| val | 20 | 100 |
+| test | 30 | 300 |
 
-Remaining normal images are marked `unused` in `split.csv`.
+The remaining 454 normal images are marked `unused` in `split.csv`.
+
+Why these sizes: only 100 defective images exist, so every defect in test is one less for training. Test uses a near-realistic ratio (1:10) so false alarms can be measured with useful resolution. Val has a similar ratio so thresholds tuned on val transfer to test. Train is kept near 1:3. The official VisA split files (`split_csv/`) were not used: `1cls` has no defects in train, and the `2cls` files have no validation split.
 
 ## Data notes
 

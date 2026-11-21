@@ -56,9 +56,13 @@ OUT_DIR = Path(_arg(2, "/kaggle/working/bench" if ON_KAGGLE else "./bench"))
 CATEGORY = os.environ.get("VISA_CATEGORY", "pcb1")
 VISA_URL = "https://amazon-visual-anomaly.s3.us-west-2.amazonaws.com/VisA_20220922.tar"
 MAX_SIDE = 1024          # every image is stored with its longest side <= 1024
-N_TEST_DEFECT = 25       # test = 25 defect + 25 normal (cloud models use this same set)
-N_VAL_DEFECT = 20        # val = 20 defect + 20 normal (thresholds are tuned here, never on test)
-N_TRAIN_NORMAL = 165     # train normals are capped, remaining defects go to train
+# split sizes (seed 42). Remaining defects go to train, remaining normals are marked "unused".
+# test is close to a realistic ratio (1:10) so false alarms can be measured,
+# val has a similar ratio so thresholds tuned on val transfer to test (never tune on test),
+# train is kept near 1:3 so the supervised models see enough defects.
+N_TEST_DEFECT, N_TEST_NORMAL = 30, 300
+N_VAL_DEFECT, N_VAL_NORMAL = 20, 100
+N_TRAIN_NORMAL = 150
 BOX_DILATE_PX = 9        # merge nearby mask fragments into one box
 BOX_MIN_AREA = 15        # ignore specks smaller than this (pixels, after resize)
 KEEP_TAR = False
@@ -167,23 +171,24 @@ rng = random.Random(SEED)
 rng.shuffle(normal_files)
 rng.shuffle(defect_files)
 
-n_test_d = min(N_TEST_DEFECT, len(defect_files) // 4)
-n_val_d = min(N_VAL_DEFECT, len(defect_files) // 5)
-n_test_n, n_val_n = n_test_d, n_val_d
+if len(defect_files) <= N_TEST_DEFECT + N_VAL_DEFECT:
+    print("[error] not enough defect images for the configured split")
+    sys.exit(1)
+if len(normal_files) < N_TEST_NORMAL + N_VAL_NORMAL + N_TRAIN_NORMAL:
+    print("[error] not enough normal images for the configured split")
+    sys.exit(1)
 
 assign = []  # (path, label, split)
 for i, p in enumerate(defect_files):
-    s = "test" if i < n_test_d else ("val" if i < n_test_d + n_val_d else "train")
+    s = "test" if i < N_TEST_DEFECT else ("val" if i < N_TEST_DEFECT + N_VAL_DEFECT else "train")
     assign.append((p, 1, s))
-n_train_n = 0
 for i, p in enumerate(normal_files):
-    if i < n_test_n:
+    if i < N_TEST_NORMAL:
         s = "test"
-    elif i < n_test_n + n_val_n:
+    elif i < N_TEST_NORMAL + N_VAL_NORMAL:
         s = "val"
-    elif n_train_n < N_TRAIN_NORMAL:
+    elif i < N_TEST_NORMAL + N_VAL_NORMAL + N_TRAIN_NORMAL:
         s = "train"
-        n_train_n += 1
     else:
         s = "unused"
     assign.append((p, 0, s))
