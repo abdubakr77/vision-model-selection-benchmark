@@ -239,3 +239,5 @@ runs/
 results/**/api_cache/
 .cache/
 wandb/
+# raw VisA download kept inside the dataset folder (category folders and official split csv files)
+datasets/manufacturing_visa/*/
