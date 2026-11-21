@@ -2,7 +2,7 @@
 
 **Source:** https://github.com/amazon-science/spot-diff (download via AWS Open Data: `s3://amazon-visual-anomaly/VisA_20220922.tar`).
 **Size:** 12 object types, 10,821 images (9,621 normal, 1,200 anomalous), about 100 anomalous images per type. Image and pixel-level (mask) annotations.
-**Subset used first:** `pcb1` (about 904 normal, 100 defective). Defects are small, which makes it a hard and realistic test.
+**Subset used first:** `pcb1` (1004 normal, 100 defective, counted on disk). Defects are small, which makes it a hard and realistic test.
 
 ## Task (shared by every model)
 
@@ -23,6 +23,12 @@ Thresholds are tuned on the validation split only.
 | test | 25 | 25 |
 
 Remaining normal images are marked `unused` in `split.csv`.
+
+## Data notes
+
+- **Masks look black but are not empty.** VisA masks store the defect type as the pixel value (0, 1, 3, 4 ...), not 255. Any threshold like `> 127` returns an empty mask. Use `> 0`.
+- `pcb1` is an HC-SR04 ultrasonic sensor board. Defect size varies a lot: a bent pin covers about 0.1% of the image, a damaged sensor part about 10%. This spread is useful for failure analysis.
+- Images are 1404 x 1070 and masks have the same size.
 
 ## Preparation
 

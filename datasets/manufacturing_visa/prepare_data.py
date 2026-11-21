@@ -7,6 +7,7 @@
 # Usage (Kaggle cell or terminal):
 #   python 01_prepare_data.py [input_dir] [output_dir]
 # Optional env var: VISA_CATEGORY (default pcb1)
+# Note: VisA masks hold class ids (0, 1, 3, 4 ...), they look black but are not empty.
 
 import os
 import sys
@@ -235,7 +236,8 @@ for p, label, split in assign:
             if m is None:
                 raise ValueError("mask unreadable")
             m = resize_to(m, size, cv2.INTER_NEAREST)
-            mb = np.ascontiguousarray((m > 127).astype(np.uint8))
+            # VisA masks store the defect type as pixel value (1, 3, 4 ...), not 255, so use > 0
+            mb = np.ascontiguousarray((m > 0).astype(np.uint8))
             area_frac = float(mb.sum()) / (W * H)
             boxes = mask_to_boxes(mb)
             if not boxes and mb.sum() > 0:
