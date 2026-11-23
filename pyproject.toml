@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vision-benchmark"
+version = "0.1.0"
+description = "Reusable code for the Vision Model Selection Benchmark."
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Abdullah Bakr" }]
+# libraries are listed (and pinned later) in requirements.txt
+
+[tool.setuptools.packages.find]
+where = ["src"]
