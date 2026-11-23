@@ -7,6 +7,8 @@ import cv2
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from .boxes import normalized_to_pixels
+
 CROP_PAD_PX = 20  # extra pixels kept around each box when cropping, tiny defects need context
 
 
@@ -15,18 +17,6 @@ def _read_rgb_image(path):
     if img is None:
         raise FileNotFoundError(f"could not read image: {path}")
     return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
-
-def _normalized_to_pixels(boxes, width, height):
-    """YOLO boxes (normalized cx, cy, w, h) to pixel corners (x0, y0, x1, y1), clipped to the image."""
-    out = []
-    for cx, cy, bw, bh in boxes:
-        x0 = max(0, int(round((cx - bw / 2) * width)))
-        y0 = max(0, int(round((cy - bh / 2) * height)))
-        x1 = min(width, int(round((cx + bw / 2) * width)))
-        y1 = min(height, int(round((cy + bh / 2) * height)))
-        out.append((x0, y0, x1, y1))
-    return out
 
 
 def show_sample_images(data: pd.DataFrame, num_images=3, filter_data=None, show_boxes=True,
@@ -57,7 +47,7 @@ def show_sample_images(data: pd.DataFrame, num_images=3, filter_data=None, show_
         rel = str(r["path"]).replace("\\", os.sep).replace("/", os.sep)  # csv may hold Windows paths
         img = _read_rgb_image(os.path.join(base_dir, rel) if base_dir else rel)
         h, w = img.shape[:2]
-        boxes = _normalized_to_pixels(json.loads(r["boxes"]), w, h) if isinstance(r["boxes"], str) else []
+        boxes = normalized_to_pixels(json.loads(r["boxes"]), w, h) if isinstance(r["boxes"], str) else []
         rows.append((r, img, boxes))
 
     n_cols = 1 + (max(len(b) for _, _, b in rows) if crop_boxes else 0)
@@ -97,4 +87,50 @@ def show_sample_images(data: pd.DataFrame, num_images=3, filter_data=None, show_
         print(f"saved: {out}")
 
     plt.show()
-    return fig
+
+
+def show_color_vs_gray(data: pd.DataFrame, num_images=4, filter_data=None, save_plot=None, base_dir=None,
+                       random_state=42):
+    """For random images, show the full image and the crop of its largest box, in color and in grayscale.
+
+    Same data, filter_data, save_plot, base_dir and random_state rules as show_sample_images.
+    Images without boxes show the full image only.
+    """
+    df = data[data["path"].notna()]
+    if filter_data is not None:
+        column, value = filter_data
+        df = df[df[column] == value]
+    if df.empty:
+        raise ValueError("no rows left to show after filtering")
+    df = df.sample(n=min(num_images, len(df)), random_state=random_state)
+
+    fig, axes = plt.subplots(len(df), 4, figsize=(18, 3.6 * len(df)), squeeze=False)
+    for i, (_, r) in enumerate(df.iterrows()):
+        rel = str(r["path"]).replace("\\", os.sep).replace("/", os.sep)
+        img = _read_rgb_image(os.path.join(base_dir, rel) if base_dir else rel)
+        gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+        h, w = img.shape[:2]
+        boxes = normalized_to_pixels(json.loads(r["boxes"]), w, h) if isinstance(r["boxes"], str) else []
+
+        axes[i, 0].imshow(img)
+        axes[i, 0].set_title(f"{r['image_id']} | color", fontsize=10)
+        axes[i, 1].imshow(gray, cmap="gray")
+        axes[i, 1].set_title("grayscale", fontsize=10)
+        if boxes:
+            x0, y0, x1, y1 = max(boxes, key=lambda b: (b[2] - b[0]) * (b[3] - b[1]))
+            ys = slice(max(0, y0 - CROP_PAD_PX), min(h, y1 + CROP_PAD_PX))
+            xs = slice(max(0, x0 - CROP_PAD_PX), min(w, x1 + CROP_PAD_PX))
+            axes[i, 2].imshow(img[ys, xs])
+            axes[i, 2].set_title(f"largest box {x1 - x0}x{y1 - y0} px | color", fontsize=10)
+            axes[i, 3].imshow(gray[ys, xs], cmap="gray")
+            axes[i, 3].set_title("grayscale", fontsize=10)
+        for ax in axes[i]:
+            ax.axis("off")
+
+    fig.tight_layout()
+    if save_plot is not None and save_plot is not False:
+        out = os.path.join(os.getcwd(), "color_vs_gray.png") if save_plot is True else str(save_plot)
+        os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+        fig.savefig(out, dpi=120, bbox_inches="tight")
+        print(f"saved: {out}")
+    plt.show()

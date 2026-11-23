@@ -1,5 +1,6 @@
-"""Seeding, IO and logging helpers."""
+"""Seeding, IO, box and plotting helpers."""
 
-from .visualization import show_sample_images
+from .boxes import boxes_table, normalized_to_pixels
+from .visualization import show_color_vs_gray, show_sample_images
 
-__all__ = ["show_sample_images"]
+__all__ = ["boxes_table", "normalized_to_pixels", "show_color_vs_gray", "show_sample_images"]
