@@ -221,8 +221,8 @@ __marimo__/
 
 # ---------------- project specific ----------------
 # local data and raw downloads (never commit datasets)
-data/
-bench/
+/data/
+/bench/
 datasets/**/raw/
 *.tar
 *.zip
