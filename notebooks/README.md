@@ -6,8 +6,10 @@ Kaggle / Colab runners. Each notebook is a thin wrapper around code in `src/visi
 
 Per dataset (one dataset at a time, Phase 1 = manufacturing):
 
-1. `01_eda`: look at the raw data, find edge cases.
-2. `02_data_prep`: build the canonical dataset and the fixed `split.csv`.
+1. `01_eda`: explore the data, find problems and edge cases. It never changes the data; it ends with a findings table.
+2. `02_data_prep`: apply the fixes from the EDA and build the canonical dataset and the fixed `split.csv`.
+
+Notebooks import helpers from the repo package. Install it once from the repo root with `pip install -e .`; after that a kernel restart picks up any change in `src/`.
 
 Models (shared across datasets, dataset name is a parameter):
 

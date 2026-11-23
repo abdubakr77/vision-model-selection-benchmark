@@ -8,4 +8,4 @@ One folder per scenario. Each contains a README (source, license, how to downloa
 | documents | Document understanding | TBD | check | Phase 3 |
 | retail | Product recognition | TBD | check | Phase 3 |
 
-Raw data and prepared images are git-ignored. Only split files and scripts are versioned.
+Raw data, prepared images and generated split files (`bench/`) are git-ignored. Only scripts and READMEs are versioned; the split is reproducible from the script and seed 42.

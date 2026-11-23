@@ -35,11 +35,27 @@ Why these sizes: only 100 defective images exist, so every defect in test is one
 
 ## Preparation
 
+Local layout used during development (git-ignored): the VisA download is extracted into this folder, so `pcb1` sits at `datasets/manufacturing_visa/pcb1/Data/Images/{Normal,Anomaly}` and `.../Data/Masks/Anomaly`.
+
+From the repo root:
+
 ```
-python prepare_data.py [input_dir] [output_dir]
+python datasets/manufacturing_visa/prepare_data.py datasets/manufacturing_visa bench
 ```
 
-Downloads the tar if needed (Kaggle: turn Internet on), extracts one category, resizes to max side 1024, derives YOLO boxes from the masks, and writes `split.csv`, `meta.json`, YOLO `data.yaml` and a `preview.jpg` for visual checking.
+Arguments are `[input_dir] [output_dir]`. If `pcb1` is not found under the input folder, the script downloads the tar (Kaggle: turn Internet on) and extracts only that category. It resizes to max side 1024, derives YOLO boxes from the masks, and writes `split.csv`, `meta.json`, YOLO `data.yaml` and a `preview.jpg` for visual checking. A full local run takes about 15 seconds.
+
+## EDA findings
+
+From [notebooks/manufacturing/01_eda.ipynb](../../notebooks/manufacturing/01_eda.ipynb). Fixes are applied in `02_data_prep`.
+
+| Finding | Evidence |
+|---|---|
+| Defects are small | median defect area 0.2% of the image, smallest box 9 x 9 px at 1024 x 780 |
+| Small defects are unevenly split | 23 of 100 defect images have a box under 32 x 32 px: 17 train, 3 val, 3 test |
+| Board orientation leaks the label | 439 of 550 normal images are rotated 180 degrees, 96 of 100 defect images are upright |
+| Color adds little | brightness difference beats color difference for 92% of defects |
+| No duplicate boxes | 0 inside an image, 0 across images |
 
 ## License and citation
 
