@@ -6,7 +6,7 @@ Status: not started / in progress / done
 |---|---|
 | Dataset research and selected datasets | in progress (manufacturing chosen) |
 | Model selection and rationale | not started |
-| Reusable benchmark / evaluation code | not started |
+| Reusable benchmark / evaluation code | in progress (installable package, box, plotting, orientation and contrast helpers) |
 | Results comparison table | not started |
 | Accuracy, latency, cost, infrastructure comparison | not started |
 | Failure-analysis examples | not started |
@@ -18,12 +18,12 @@ Status: not started / in progress / done
 | Technical blog | not started |
 | 3 to 5 LinkedIn posts | not started |
 | Short demo video | not started |
-| Clean GitHub repo with setup instructions | in progress (structure created) |
+| Clean GitHub repo with setup instructions | in progress (structure, install and data prep steps) |
 
 ## Phases
 
 - Phase 0: questions answered. Done.
-- Phase 1: one dataset (VisA pcb1), YOLO + Swin/ViT + one small open VLM, metrics, latency, VRAM. In progress (data prep script ready).
+- Phase 1: one dataset (VisA pcb1), YOLO + Swin/ViT + one small open VLM, metrics, latency, VRAM. In progress: data prep script run on real pcb1 data, EDA done (findings in the notebook), next is `02_data_prep` (orientation fix, stratified split).
 - Phase 2: cloud API model(s), cost and latency tracking.
 - Phase 3: documents and retail datasets, edge cases, failure analysis.
 - Phase 4: tables, charts, decision framework, demo, blog, posts, video.
