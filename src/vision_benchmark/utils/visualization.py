@@ -5,6 +5,7 @@ import os
 
 import cv2
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
 from .boxes import normalized_to_pixels
@@ -86,6 +87,36 @@ def show_sample_images(data: pd.DataFrame, num_images=3, filter_data=None, show_
         fig.savefig(out, dpi=120, bbox_inches="tight")
         print(f"saved: {out}")
 
+    plt.show()
+
+
+def show_thumbnail_grid(paths, n_cols=20, thumb_width=160, title=None, save_plot=None):
+    """Many images as small thumbnails in one grid, to scan a whole group by eye (for example all rotated boards).
+
+    paths: full image paths. save_plot follows the show_sample_images rules.
+    """
+    thumbs = []
+    for p in paths:
+        img = _read_rgb_image(p)
+        h, w = img.shape[:2]
+        thumbs.append(cv2.resize(img, (thumb_width, int(h * thumb_width / w)), interpolation=cv2.INTER_AREA))
+    th, tw = thumbs[0].shape[:2]
+    n_rows = (len(thumbs) + n_cols - 1) // n_cols
+    sheet = np.full((n_rows * th, n_cols * tw, 3), 255, np.uint8)
+    for i, t in enumerate(thumbs):
+        r, c = divmod(i, n_cols)
+        sheet[r * th:r * th + t.shape[0], c * tw:c * tw + t.shape[1]] = t[:th, :tw]
+
+    fig = plt.figure(figsize=(n_cols * tw / 100, n_rows * th / 100 + 0.6))
+    plt.imshow(sheet)
+    plt.axis("off")
+    if title:
+        plt.title(title)
+    if save_plot is not None and save_plot is not False:
+        out = os.path.join(os.getcwd(), "thumbnails.png") if save_plot is True else str(save_plot)
+        os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+        fig.savefig(out, dpi=100, bbox_inches="tight")
+        print(f"saved: {out}")
     plt.show()
 
 
