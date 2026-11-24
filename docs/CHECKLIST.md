@@ -23,7 +23,7 @@ Status: not started / in progress / done
 ## Phases
 
 - Phase 0: questions answered. Done.
-- Phase 1: one dataset (VisA pcb1), YOLO + Swin/ViT + one small open VLM, metrics, latency, VRAM. In progress: data prep script run on real pcb1 data, EDA done (findings in the notebook), next is `02_data_prep` (orientation fix, stratified split).
+- Phase 1: one dataset (VisA pcb1), YOLO + Swin/ViT + one small open VLM, metrics, latency, VRAM. In progress: EDA on raw pcb1 done, `02_data_prep` done (orientation fixed, stratified split, gray and color copies, train-only augmentation). Next: YOLO, Swin/ViT and one small VLM.
 - Phase 2: cloud API model(s), cost and latency tracking.
 - Phase 3: documents and retail datasets, edge cases, failure analysis.
 - Phase 4: tables, charts, decision framework, demo, blog, posts, video.
