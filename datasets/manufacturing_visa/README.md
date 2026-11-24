@@ -1,8 +1,8 @@
 # Manufacturing: VisA (pcb1)
 
-**Source:** https://github.com/amazon-science/spot-diff (download via AWS Open Data: `s3://amazon-visual-anomaly/VisA_20220922.tar`).
+**Source:** https://github.com/amazon-science/spot-diff (download via AWS Open Data: `s3://amazon-visual-anomaly/VisA_20220922.tar`, about 2 GB).
 **Size:** 12 object types, 10,821 images (9,621 normal, 1,200 anomalous), about 100 anomalous images per type. Image and pixel-level (mask) annotations.
-**Subset used first:** `pcb1` (1004 normal, 100 defective, counted on disk). Defects are small, which makes it a hard and realistic test.
+**Subset used first:** `pcb1`, an HC-SR04 ultrasonic sensor board (1004 normal, 100 defective). Defects are small, which makes it a hard and realistic test.
 
 ## Task (shared by every model)
 
@@ -14,48 +14,72 @@ Image-level classification: `normal` or `defective`.
 
 Thresholds are tuned on the validation split only.
 
-## Split (seed 42)
+## Getting the data
 
-| Split | Defective | Normal |
-|---|---|---|
-| train | 50 | 150 |
-| val | 20 | 100 |
-| test | 30 | 300 |
+Download the VisA tar and extract it into this folder (git-ignored), so the files sit at:
 
-The remaining 454 normal images are marked `unused` in `split.csv`.
+```
+datasets/manufacturing_visa/pcb1/image_anno.csv
+datasets/manufacturing_visa/pcb1/Data/Images/{Normal,Anomaly}/
+datasets/manufacturing_visa/pcb1/Data/Masks/Anomaly/
+```
 
-Why these sizes: only 100 defective images exist, so every defect in test is one less for training. Test uses a near-realistic ratio (1:10) so false alarms can be measured with useful resolution. Val has a similar ratio so thresholds tuned on val transfer to test. Train is kept near 1:3. The official VisA split files (`split_csv/`) were not used: `1cls` has no defects in train, and the `2cls` files have no validation split.
-
-## Data notes
-
-- **Masks look black but are not empty.** VisA masks store the defect type as the pixel value (0, 1, 3, 4 ...), not 255. Any threshold like `> 127` returns an empty mask. Use `> 0`.
-- `pcb1` is an HC-SR04 ultrasonic sensor board. Defect size varies a lot: a bent pin covers about 0.1% of the image, a damaged sensor part about 10%. This spread is useful for failure analysis.
-- Images are 1404 x 1070 and masks have the same size.
-- Boxes are derived from masks (dilate 9 px, connected components, drop specks under 15 px). Boxes that overlap or sit inside each other are merged into one; separate defects (for example two bent pins) keep separate boxes.
+`image_anno.csv` has one row per image: image path, defect type (`normal`, `bent`, `melt`, `scratch`, `missing`, or several joined by commas) and mask path.
 
 ## Preparation
 
-Local layout used during development (git-ignored): the VisA download is extracted into this folder, so `pcb1` sits at `datasets/manufacturing_visa/pcb1/Data/Images/{Normal,Anomaly}` and `.../Data/Masks/Anomaly`.
-
-From the repo root:
+Run [notebooks/manufacturing/02_data_prep.ipynb](../../notebooks/manufacturing/02_data_prep.ipynb) top to bottom (about 1 minute locally). It reads the raw files above and rebuilds `bench/` at the repo root:
 
 ```
-python datasets/manufacturing_visa/prepare_data.py datasets/manufacturing_visa bench
+bench/
+  split.csv, meta.json
+  color/data.yaml, color/images/<split>/, color/labels/<split>/
+  gray/data.yaml,  gray/images/<split>/,  gray/labels/<split>/
+  masks/<split>/          defect images only, 0 or 255
 ```
 
-Arguments are `[input_dir] [output_dir]`. If `pcb1` is not found under the input folder, the script downloads the tar (Kaggle: turn Internet on) and extracts only that category. It resizes to max side 1024, derives YOLO boxes from the masks, and writes `split.csv`, `meta.json`, YOLO `data.yaml` and a `preview.jpg` for visual checking. A full local run takes about 15 seconds.
+Steps, in order:
+
+1. Measure which defect images have a small box (under 32 x 32 px at 1024 x 780).
+2. Split with seed 42 (table below). Defect images are split separately with and without a small box, in the same proportion.
+3. Detect the board orientation of every used image and turn `rotated_180` images upright, together with their masks.
+4. Resize to 1024 x 780, derive boxes from the masks, write a color and a gray copy with YOLO label files.
+5. Train only: 3 augmented copies of every defect image, a 50% chance of one copy for every normal image. Each copy gets a random safe zoom in (70% chance, up to about 1.4x, never cutting the board, pins or defects) and random brightness and contrast.
+6. Write `split.csv`, one `data.yaml` per mode, `meta.json`, then check the output.
+
+## Split (seed 42)
+
+| Split | Defective | Normal | Defective with a small box |
+|---|---|---|---|
+| train | 50 (+150 augmented) | 150 (+76 augmented) | 11 |
+| val | 20 | 100 | 5 |
+| test | 30 | 300 | 7 |
+
+The remaining 454 normal images are not used. Val and test are never augmented.
+
+Why these sizes: only 100 defective images exist, so every defect in test is one less for training. Test uses a near-realistic ratio (1:10) so false alarms can be measured with useful resolution. Val has a similar ratio so thresholds tuned on val transfer to test. The official VisA split files (`split_csv/`) were not used: `1cls` has no defects in train, and the `2cls` files have no validation split.
+
+## Data notes
+
+- **Masks look black but are not empty.** The pixel value is the defect type id (1 bent, 2 melt, 3 scratch, 4 missing), not 255. Any threshold like `> 127` returns an empty mask. Use `> 0`.
+- Raw images and masks are 1404 x 1070.
+- Boxes are derived from masks (dilate 9 px, connected components, drop specks under 15 px). Boxes that overlap or sit inside each other are merged into one; separate defects (for example two bent pins) keep separate boxes.
+- Paths in `split.csv` use `/`, so `bench/` works on Linux (Kaggle) unchanged. The YOLO `data.yaml` files have no `path` key, so YOLO uses the folder of the yaml.
 
 ## EDA findings
 
-From [notebooks/manufacturing/01_eda.ipynb](../../notebooks/manufacturing/01_eda.ipynb). Fixes are applied in `02_data_prep`.
+From [notebooks/manufacturing/01_eda.ipynb](../../notebooks/manufacturing/01_eda.ipynb), on the raw data. Fixes are applied in `02_data_prep`.
 
 | Finding | Evidence |
 |---|---|
-| Defects are small | median defect area 0.2% of the image, smallest box 9 x 9 px at 1024 x 780 |
-| Small defects are unevenly split | 23 of 100 defect images have a box under 32 x 32 px: 17 train, 3 val, 3 test |
-| Board orientation leaks the label | 439 of 550 normal images are rotated 180 degrees, 96 of 100 defect images are upright |
-| Color adds little | brightness difference beats color difference for 92% of defects |
+| Four defect types | melt 54, scratch 21, missing 20, bent 15 images; 9 images have more than one type |
+| Defects are small | median defect area 0.2% of the image, smallest box 9 x 9 px |
+| Small defects are a group of their own | 26 of 100 defect images have a box under 32 x 32 px at 1024 wide; all of them contain `melt` |
+| Board orientation leaks the label | 790 of 1004 normal images are rotated 180 degrees, 96 of 100 defect images are upright |
+| Color adds little | brightness difference beats color difference for 93% of defects |
 | No duplicate boxes | 0 inside an image, 0 across images |
+
+The small-box count is 26 on raw boxes scaled to 1024 wide and 23 on boxes measured after the resize; the split uses the second.
 
 ## License and citation
 
