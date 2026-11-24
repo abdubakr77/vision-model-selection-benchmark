@@ -17,6 +17,12 @@
 | Documents | field extraction or question answering |
 | Retail | product classification or counting |
 
+## Data preparation rules
+
+- Fixes found in EDA are applied once, in the data prep notebook, so every model sees the same images.
+- Augmentation is applied to train only, offline, with a fixed seed. Val and test are never augmented. Built-in augmentation of a model library (for example YOLO) is turned off so it does not stack.
+- Every image is stored in color and in grayscale. Supervised models are trained on grayscale first, then retrained on color for comparison; VLMs and cloud models get color.
+
 ## Metrics
 
 - Quality: precision, recall, F1, accuracy, plus AUROC when a score exists.
