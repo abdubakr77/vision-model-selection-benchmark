@@ -21,7 +21,7 @@ Per dataset (one dataset at a time, Phase 1 = manufacturing):
 
 `manufacturing/` has all of them; `documents/` and `retail/` get their model notebooks in Phase 3.
 
-Training runs on Kaggle (T4 x2) with a self-contained copy of the notebook; the run folder is then downloaded into `results/` and the repo notebook reads it from there.
+Training runs on Kaggle (T4 x2); the run folder is then downloaded into `results/` and the notebook reads it from there. Train cells are left unrun.
 
 ## Rules
 
