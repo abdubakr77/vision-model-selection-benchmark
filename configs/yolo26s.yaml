@@ -1,0 +1,49 @@
+# YOLO26-S training settings for VisA pcb1, read by notebooks/models/03_yolo.ipynb.
+# Everything under `train` is passed as is to model.train().
+# Several runs were tried; the small model with light built-in augmentation and early stopping gave the best results so far.
+
+weights: weights/yolo26s.pt   # relative to the repo root, downloaded there on the first run
+
+train:
+  # size and length
+  imgsz: 1024         # full width of the prepared images, small defects keep their pixels
+  epochs: 50          # upper limit, early stopping usually ends the run sooner
+  patience: 7         # stop when val fitness has not improved for 7 epochs
+  batch: 16
+  nbs: 16             # same as batch: one weight update per batch, no gradient summing
+
+  # optimizer
+  optimizer: AdamW    # must be set by name, 'auto' ignores lr0 and lrf
+  lr0: 0.001          # start learning rate
+  lrf: 0.1            # end learning rate = lr0 * lrf = 0.0001 (lrf is a fraction, not the rate itself)
+
+  # hardware and repeatability
+  device: 0           # first CUDA GPU (the Kaggle copy uses both T4s: [0, 1])
+  amp: true           # mixed precision, less memory and faster
+  workers: 4
+  seed: 42
+  deterministic: true
+
+  # outputs
+  plots: true         # save curves, confusion matrix and sample batches in the run folder
+  exist_ok: true      # rerun writes into the same folder instead of making name2, name3
+
+  # light built-in augmentation against overfitting (on top of the offline copies from data prep)
+  hsv_v: 0.2          # brightness +-20%
+  translate: 0.05     # shift up to 5% of the image
+  scale: 0.2          # zoom 0.8x to 1.2x
+  # everything else off: no flips or rotation (board orientation is fixed), no mosaic or mixing
+  hsv_h: 0.0
+  hsv_s: 0.0
+  degrees: 0.0
+  shear: 0.0
+  perspective: 0.0
+  flipud: 0.0
+  fliplr: 0.0
+  bgr: 0.0
+  mosaic: 0.0
+  close_mosaic: 0
+  mixup: 0.0
+  cutmix: 0.0
+  copy_paste: 0.0
+  augmentations: []   # empty list removes the default filters (blur, median blur, to gray, CLAHE)

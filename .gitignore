@@ -223,6 +223,9 @@ __marimo__/
 # local data and raw downloads (never commit datasets)
 /data/
 /bench/
+/weights/
+# local Kaggle bundle (training notebook + dataset zip)
+/kaggle/
 datasets/**/raw/
 *.tar
 *.zip
