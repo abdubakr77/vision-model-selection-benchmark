@@ -7,6 +7,9 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import torch
+from sklearn.metrics import average_precision_score, precision_recall_curve, roc_auc_score, roc_curve
+from torchvision.utils import make_grid
 
 from .boxes import normalized_to_pixels
 
@@ -175,6 +178,84 @@ def _save_figure(fig, save_plot, default_name):
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     fig.savefig(out, dpi=120, bbox_inches="tight")
     print(f"saved: {out}")
+
+
+def plot_training_history(history: pd.DataFrame, save_plot=None):
+    """Loss (train and val) and val AUROC per epoch, from the history returned by fit().
+
+    Epochs that became the best are marked with a star; the dashed line is the saved best.pt epoch.
+    """
+    best = history[history["best"].fillna("") != ""]
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    axes[0].plot(history["epoch"], history["train_loss"], marker="o", label="train")
+    axes[0].plot(history["epoch"], history["val_loss"], marker="o", label="val")
+    axes[0].plot(best["epoch"], best["val_loss"], "*", ms=14, color="gold", mec="black", label="new best")
+    axes[0].set(title="BCE loss", xlabel="epoch")
+    axes[1].plot(history["epoch"], history["val_auroc"], marker="o", label="val AUROC")
+    axes[1].plot(best["epoch"], best["val_auroc"], "*", ms=14, color="gold", mec="black", label="new best")
+    axes[1].set(title="val AUROC", xlabel="epoch")
+    for ax in axes:
+        if len(best):
+            ax.axvline(best["epoch"].iloc[-1], ls="--", color="gray", label="saved epoch")
+        ax.grid(alpha=0.3)
+        ax.legend()
+    fig.tight_layout()
+    _save_figure(fig, save_plot, "training_history.png")
+    plt.show()
+
+
+def plot_roc_pr(labels, scores, title="", save_plot=None):
+    """ROC curve and precision-recall curve for one set of image scores."""
+    fpr, tpr, _ = roc_curve(labels, scores)
+    precision, recall, _ = precision_recall_curve(labels, scores)
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    axes[0].plot(fpr, tpr, label=f"AUROC {roc_auc_score(labels, scores):.3f}")
+    axes[0].plot([0, 1], [0, 1], "--", color="gray")
+    axes[0].set(title=f"ROC {title}", xlabel="false positive rate", ylabel="true positive rate")
+    axes[1].plot(recall, precision, label=f"AP {average_precision_score(labels, scores):.3f}")
+    axes[1].axhline(np.mean(labels), ls="--", color="gray", label="random")
+    axes[1].set(title=f"Precision-recall {title}", xlabel="recall", ylabel="precision")
+    for ax in axes:
+        ax.grid(alpha=0.3)
+        ax.legend()
+    fig.tight_layout()
+    _save_figure(fig, save_plot, "roc_pr.png")
+    plt.show()
+
+
+def plot_confusion_matrix(labels, scores, threshold, title="", save_plot=None):
+    """2 x 2 counts (normal / defective) at the given score threshold."""
+    labels = np.asarray(labels).astype(int)
+    pred = (np.asarray(scores) >= threshold).astype(int)
+    cm = np.array([[((labels == t) & (pred == p)).sum() for p in (0, 1)] for t in (0, 1)])
+    fig, ax = plt.subplots(figsize=(5, 4.5))
+    ax.imshow(cm, cmap="Blues")
+    for t in (0, 1):
+        for p in (0, 1):
+            ax.text(p, t, cm[t, p], ha="center", va="center", fontsize=16,
+                    color="white" if cm[t, p] > cm.max() / 2 else "black")
+    ax.set(xticks=[0, 1], yticks=[0, 1], xticklabels=["normal", "defective"], yticklabels=["normal", "defective"],
+           xlabel="predicted", ylabel="true", title=f"{title} threshold {threshold:.3f}")
+    fig.tight_layout()
+    _save_figure(fig, save_plot, "confusion_matrix.png")
+    plt.show()
+
+
+def show_batch(images, labels, n_cols=4, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), save_plot=None):
+    """One DataLoader batch in a grid (torchvision make_grid), title = label of each image left to right.
+
+    images: normalized tensor (B, 3, H, W); mean and std undo the normalization for display.
+    """
+    x = images.detach().cpu() * torch.tensor(std).view(1, 3, 1, 1) + torch.tensor(mean).view(1, 3, 1, 1)
+    grid = make_grid(x.clamp(0, 1), nrow=n_cols, padding=8, pad_value=1.0)
+    names = ["defective" if int(v) == 1 else "normal" for v in labels]
+    fig, ax = plt.subplots(figsize=(6 * n_cols, 5 * -(-len(names) // n_cols)))
+    ax.imshow(grid.permute(1, 2, 0).numpy())
+    ax.set_title(" | ".join(names), fontsize=14)
+    ax.axis("off")
+    fig.tight_layout()
+    _save_figure(fig, save_plot, "train_batch.png")
+    plt.show()
 
 
 def show_detections(df, num_images=4, outcome=None, random_state=42, save_plot=None):
