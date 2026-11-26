@@ -1,0 +1,23 @@
+# Swin-B image classifier settings for VisA pcb1, read by notebooks/manufacturing/04_vit_swin.ipynb.
+# These are the settings of the gray and color runs in results/swin/pcb1/ (trained on Kaggle, T4 x2).
+# No online augmentation: train was already augmented offline in 02_data_prep.
+
+model: swin_base_patch4_window12_384.ms_in22k_ft_in1k   # timm name, ImageNet-22k pretrained, 88M parameters
+img_size: [640, 1024]   # height, width; the exact size of the board crops from data prep, no resize needed
+epochs: 20
+batch: 4                # images per GPU per step, so 8 per step on two GPUs
+gpus: 2                 # GPUs used through DataParallel
+nbs: 16                 # one weight update every 16 images (gradients summed over 2 steps)
+lr: 0.0001              # peak learning rate after warmup, cosine down to 0
+weight_decay: 0.05
+warmup_epochs: 1
+drop_path_rate: 0.1     # randomly skips residual blocks during training, light regularization
+
+# best epoch and early stopping (see better_epoch in src/vision_benchmark/models/classifier.py)
+patience: 5             # stop after 5 epochs without a new best
+auroc_floor: 0.98       # under this val AUROC, only a higher AUROC makes a new best
+auroc_tol: 0.005        # above the floor: AUROC may sit this much under its peak if val loss drops enough
+min_loss_drop: 0.05     # val loss must be at least 5% under the best epoch's val loss to count (smaller is noise)
+max_loss_rise: 0.2      # above the floor, an AUROC gain does not count if val loss is over 20% higher (overconfident)
+workers: 4
+seed: 42
