@@ -165,3 +165,79 @@ def show_color_vs_gray(data: pd.DataFrame, num_images=4, filter_data=None, save_
         fig.savefig(out, dpi=120, bbox_inches="tight")
         print(f"saved: {out}")
     plt.show()
+
+
+def _save_figure(fig, save_plot, default_name):
+    """Save rule shared by the training plots: None/False no save, True to os.getcwd(), str to that path."""
+    if save_plot is None or save_plot is False:
+        return
+    out = os.path.join(os.getcwd(), default_name) if save_plot is True else str(save_plot)
+    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+    fig.savefig(out, dpi=120, bbox_inches="tight")
+    print(f"saved: {out}")
+
+
+def show_detections(df, num_images=4, outcome=None, random_state=42, save_plot=None):
+    """True boxes (green) next to predicted boxes (red, with confidence) for images from apply_conf.
+
+    outcome: "TP", "FN", "FP" or "TN" to show only that kind, None for any.
+    Each row is the full image and a zoom on the area of the true and predicted boxes,
+    so the difference between them is visible. The title gives the image score and each
+    true box's best IoU with a prediction (0 = missed).
+    """
+    rows = df if outcome is None else df[df["outcome"] == outcome]
+    if rows.empty:
+        print(f"no images with outcome {outcome}")
+        return
+    rows = rows.sample(n=min(num_images, len(rows)), random_state=random_state)
+
+    fig, axes = plt.subplots(len(rows), 2, figsize=(16, 5.5 * len(rows)), squeeze=False)
+    for ax_row, (_, r) in zip(axes, rows.iterrows()):
+        img = _read_rgb_image(r["path"])
+        thick = max(2, img.shape[1] // 400)
+        for x0, y0, x1, y1 in r["true_boxes"]:
+            cv2.rectangle(img, (int(x0), int(y0)), (int(x1), int(y1)), (0, 200, 0), thick)
+        for x0, y0, x1, y1, c in r["kept_boxes"]:
+            cv2.rectangle(img, (int(x0), int(y0)), (int(x1), int(y1)), (230, 0, 0), thick)
+            cv2.putText(img, f"{c:.2f}", (int(x0), max(int(y0) - 6, 12)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (230, 0, 0), 2)
+
+        ious = ", ".join(f"{i:.2f}" for i in r["best_iou"]) or "-"
+        ax_row[0].imshow(img)
+        ax_row[0].set_title(f"{r['image_id']} | {r['outcome']} | {r['defect_type']} | score {r['score']:.2f}\n"
+                            f"true {r['n_true']} (green), predicted {r['n_pred']} (red) | best IoU per true box: {ious}")
+
+        # zoom on every box of the image (true and predicted), with some margin
+        boxes = [b[:4] for b in r["true_boxes"]] + [b[:4] for b in r["kept_boxes"]]
+        if boxes:
+            pad = 60
+            x0 = max(int(min(b[0] for b in boxes)) - pad, 0)
+            y0 = max(int(min(b[1] for b in boxes)) - pad, 0)
+            x1 = min(int(max(b[2] for b in boxes)) + pad, img.shape[1])
+            y1 = min(int(max(b[3] for b in boxes)) + pad, img.shape[0])
+            ax_row[1].imshow(img[y0:y1, x0:x1])
+            ax_row[1].set_title("zoom on the boxes")
+        for ax in ax_row:
+            ax.axis("off")
+    fig.tight_layout()
+    _save_figure(fig, save_plot, "detections.png")
+    plt.show()
+
+
+def show_crop_examples(raw_images, crop_boxes, cropped_images, titles, save_plot=None):
+    """Each row: the upright raw image with its crop box (red) and the cropped, resized result.
+
+    raw_images and cropped_images are BGR arrays; crop_boxes are (x0, y0, x1, y1) in raw pixels.
+    """
+    fig, axes = plt.subplots(len(raw_images), 2, figsize=(16, 5 * len(raw_images)), squeeze=False)
+    for ax_row, raw, box, cropped, title in zip(axes, raw_images, crop_boxes, cropped_images, titles):
+        shown = cv2.cvtColor(raw, cv2.COLOR_BGR2RGB)
+        cv2.rectangle(shown, box[:2], box[2:], (230, 0, 0), max(2, raw.shape[1] // 300))
+        ax_row[0].imshow(shown)
+        ax_row[0].set_title(f"{title} | raw {raw.shape[1]} x {raw.shape[0]}, crop box in red")
+        ax_row[1].imshow(cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB))
+        ax_row[1].set_title(f"cropped and resized to {cropped.shape[1]} x {cropped.shape[0]}")
+        for ax in ax_row:
+            ax.axis("off")
+    fig.tight_layout()
+    _save_figure(fig, save_plot, "crop_examples.png")
+    plt.show()
