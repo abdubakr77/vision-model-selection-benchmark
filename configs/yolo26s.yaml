@@ -9,16 +9,16 @@ train:
   imgsz: 1024         # full width of the prepared images, small defects keep their pixels
   epochs: 50          # upper limit, early stopping usually ends the run sooner
   patience: 7         # stop when val fitness has not improved for 7 epochs
-  batch: 16
-  nbs: 16             # same as batch: one weight update per batch, no gradient summing
+  batch: 32           # total over both GPUs (16 per T4)
+  nbs: 64             # gradients of 2 batches are summed before each weight update (64 / 32)
 
   # optimizer
   optimizer: AdamW    # must be set by name, 'auto' ignores lr0 and lrf
-  lr0: 0.001          # start learning rate
-  lrf: 0.1            # end learning rate = lr0 * lrf = 0.0001 (lrf is a fraction, not the rate itself)
+  lr0: 0.0005         # start learning rate
+  lrf: 0.1            # end learning rate = lr0 * lrf = 0.00005 (lrf is a fraction, not the rate itself)
 
   # hardware and repeatability
-  device: 0           # first CUDA GPU (the Kaggle copy uses both T4s: [0, 1])
+  device: [0, 1]      # both Kaggle T4s; on one GPU use 0 (batch 32 at 1024 needs more than 8 GB)
   amp: true           # mixed precision, less memory and faster
   workers: 4
   seed: 42
