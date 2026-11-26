@@ -40,11 +40,11 @@ bench/
 
 Steps, in order:
 
-1. Measure which defect images have a small box (under 32 x 32 px at 1024 x 780).
+1. Measure which defect images have a small box (under 32 x 32 px with the whole frame resized to 1024 x 780, the EDA definition; it does not depend on the crop).
 2. Split with seed 42 (table below). Defect images are split separately with and without a small box, in the same proportion.
 3. Detect the board orientation of every used image and turn `rotated_180` images upright, together with their masks.
-4. Resize to 1024 x 780, derive boxes from the masks, write a color and a gray copy with YOLO label files.
-5. Train only: 3 augmented copies of every defect image, a 50% chance of one copy for every normal image. Each copy gets a random safe zoom in (70% chance, up to about 1.4x, never cutting the board, pins or defects) and random brightness and contrast.
+4. Crop every image to the board with one fixed rule (2% of the board width as margin on the left, right and top, 0.45 board heights below it for the pins, widened evenly to a 1.6 aspect ratio), resize to 1024 x 640, derive boxes from the cropped mask, write a color and a gray copy with YOLO label files. The crop uses no labels, so any new image gets the same crop; it cuts off no defect pixel and gives defects about 1.4x more pixels than resizing the whole frame.
+5. Train only: 3 augmented copies of every defect image, a 50% chance of one copy for every normal image. Each copy gets random brightness and contrast. The random zoom used before the crop is off, since the crop leaves no free border.
 6. Write `split.csv`, one `data.yaml` per mode, `meta.json`, then check the output.
 
 ## Split (seed 42)
