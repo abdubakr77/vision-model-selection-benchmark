@@ -4,7 +4,7 @@ A practical, reproducible benchmark that answers one question: **when should a c
 
 The same task, split, preprocessing and metrics are applied to every model type across three enterprise scenarios (manufacturing, documents, retail). The output is a decision framework, not a leaderboard.
 
-> Status: Phase 1 in progress. Manufacturing data (VisA `pcb1`) explored and prepared (orientation fixed, board crop, stratified split, gray and color copies, train-only augmentation). YOLO is trained on gray and on color; Swin/ViT and a small open VLM are next. See [docs/CHECKLIST.md](docs/CHECKLIST.md).
+> Status: Phase 1 in progress. Manufacturing data (VisA `pcb1`) explored and prepared (orientation fixed, board crop, stratified split, gray and color copies, train-only augmentation). YOLO and Swin-B are trained on gray and on color; a small open VLM is next. See [docs/CHECKLIST.md](docs/CHECKLIST.md).
 
 Built as part of a remote internship at GenAI Protos. Author: Abdullah Bakr.
 
@@ -44,16 +44,18 @@ Found during EDA on the raw data, before any model was trained ([notebook](noteb
 
 ![board crop examples](results/figures/manufacturing/pcb1_prep_crop_examples.png)
 
-## First results: YOLO26-S on pcb1
+## First results on pcb1
 
-Image-level results on the 330 test images (30 defective, 300 normal), threshold chosen on val ([notebook](notebooks/manufacturing/03_yolo.ipynb)):
+Image-level results on the 330 test images (30 defective, 300 normal), threshold chosen on val ([YOLO notebook](notebooks/manufacturing/03_yolo.ipynb), [Swin notebook](notebooks/manufacturing/04_vit_swin.ipynb)):
 
-| Run | Defects found | False alarms | AUROC | AP | F1 |
-|---|---|---|---|---|---|
-| gray | 25 / 30 | 8 / 300 | 0.912 | 0.823 | 0.794 |
-| color | 26 / 30 | 6 / 300 | 0.946 | 0.883 | 0.839 |
+| Model | Run | Defects found | False alarms | AUROC | AP | F1 |
+|---|---|---|---|---|---|---|
+| YOLO26-S | gray | 25 / 30 | 8 / 300 | 0.912 | 0.823 | 0.794 |
+| YOLO26-S | color | 26 / 30 | 6 / 300 | 0.946 | 0.883 | 0.839 |
+| Swin-B | gray | 26 / 30 | 7 / 300 | 0.987 | 0.885 | 0.825 |
+| Swin-B | color | 28 / 30 | 11 / 300 | 0.989 | 0.935 | 0.812 |
 
-Color is slightly better on test, but one image is 3.3 points of recall, so the gap is small. Both runs miss mostly solder blobs (`melt`); missing, bent and scratched pins are all found.
+YOLO misses mostly solder blobs (`melt`); missing, bent and scratched pins are all found. Swin ranks images much better (AUROC near 0.99) but gives no box: gray Swin misses both scratches, color Swin finds every melt but raises more false alarms. One image is 3.3 points of recall, so small gaps between runs are not reliable.
 
 ## Repository layout
 
@@ -98,7 +100,7 @@ pip install -e .                      # installs the helpers in src/ for the not
 1. Put the VisA files in place as described in [datasets/manufacturing_visa/README.md](datasets/manufacturing_visa/README.md).
 2. Run `notebooks/manufacturing/01_eda.ipynb` to explore the raw data.
 3. Run `notebooks/manufacturing/02_data_prep.ipynb` to build `bench/` (about 1 minute).
-4. Train YOLO with `notebooks/manufacturing/03_yolo.ipynb` (settings in `configs/yolo26s.yaml`). The runs here trained on Kaggle (T4 x2); the notebook then reads the run folders in `results/yolo/pcb1/`.
+4. Train YOLO with `notebooks/manufacturing/03_yolo.ipynb` (settings in `configs/yolo26s.yaml`) and Swin-B with `notebooks/manufacturing/04_vit_swin.ipynb` (settings in `configs/swin_b.yaml`). The runs here trained on Kaggle (T4 x2); the notebooks then read the run folders in `results/yolo/pcb1/` and `results/swin/pcb1/`.
 
 ## Licenses and attribution
 
