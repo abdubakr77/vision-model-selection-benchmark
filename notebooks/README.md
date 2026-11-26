@@ -13,7 +13,7 @@ Per dataset (one dataset at a time, Phase 1 = manufacturing):
 | 01_eda | explore the raw data, find problems and edge cases; never changes the data, ends with a findings table | 1 |
 | 02_data_prep | apply the fixes from the EDA, build `bench/` and the fixed `split.csv` | 1 |
 | 03_yolo | YOLO detector, trained on gray then on color, image-level results on val and test | 1 |
-| 04_vit_swin | ViT / Swin classifier | 1 |
+| 04_vit_swin | Swin-B classifier, trained on gray then on color, image-level results on val and test | 1 |
 | 05_vlm_open | open-source VLM | 1 |
 | 06_gemma | Gemma multimodal | 1 or 2 |
 | 07_cloud_api | cloud API model | 2 |
