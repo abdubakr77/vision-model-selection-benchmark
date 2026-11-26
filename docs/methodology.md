@@ -20,7 +20,7 @@
 ## Data preparation rules
 
 - Fixes found in EDA are applied once, in the data prep notebook, so every model sees the same images.
-- Augmentation is applied to train only, offline, with a fixed seed. Val and test are never augmented. Built-in augmentation of a model library (for example YOLO) is turned off so it does not stack.
+- Augmentation is applied to train only, offline, with a fixed seed. Val and test are never augmented. Built-in augmentation of a model library is kept light so it does not stack with the offline copies: for YOLO only brightness, a small shift and a small zoom, with no flips or rotation (board orientation is fixed).
 - Every image is stored in color and in grayscale. Supervised models are trained on grayscale first, then retrained on color for comparison; VLMs and cloud models get color.
 
 ## Metrics

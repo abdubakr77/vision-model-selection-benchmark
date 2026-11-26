@@ -1,6 +1,6 @@
 # configs
 
-Benchmark settings shared by all models: seed (42), split sizes, image size, thresholds source (validation split only), and model identifiers. One YAML file per experiment.
+One yaml file per model with its training settings, read by the model notebook. Settings shared by every model stay fixed in the data prep and the notebooks: seed 42, the split in `bench/split.csv`, and thresholds chosen on val only.
 
 | File | Used by | What it holds |
 |---|---|---|

@@ -4,7 +4,7 @@ A practical, reproducible benchmark that answers one question: **when should a c
 
 The same task, split, preprocessing and metrics are applied to every model type across three enterprise scenarios (manufacturing, documents, retail). The output is a decision framework, not a leaderboard.
 
-> Status: Phase 1 in progress. Manufacturing data (VisA `pcb1`) explored and prepared (orientation fixed, stratified split, gray and color copies, train-only augmentation); models are next. See [docs/CHECKLIST.md](docs/CHECKLIST.md).
+> Status: Phase 1 in progress. Manufacturing data (VisA `pcb1`) explored and prepared (orientation fixed, board crop, stratified split, gray and color copies, train-only augmentation). YOLO is trained on gray and on color; Swin/ViT and a small open VLM are next. See [docs/CHECKLIST.md](docs/CHECKLIST.md).
 
 Built as part of a remote internship at GenAI Protos. Author: Abdullah Bakr.
 
@@ -40,6 +40,21 @@ Found during EDA on the raw data, before any model was trained ([notebook](noteb
 
 ![defect contrast, brightness vs color](results/figures/manufacturing/pcb1_defect_contrast.png)
 
+**Every board is cropped the same way.** Data prep cuts each image to the board (small margin, room below for the pins) at full resolution before resizing to 1024 x 640, so defects get about 1.4x more pixels. The rule uses no labels, so any new image gets the same crop, and no defect pixel is cut off.
+
+![board crop examples](results/figures/manufacturing/pcb1_prep_crop_examples.png)
+
+## First results: YOLO26-S on pcb1
+
+Image-level results on the 330 test images (30 defective, 300 normal), threshold chosen on val ([notebook](notebooks/manufacturing/03_yolo.ipynb)):
+
+| Run | Defects found | False alarms | AUROC | AP | F1 |
+|---|---|---|---|---|---|
+| gray | 25 / 30 | 8 / 300 | 0.912 | 0.823 | 0.794 |
+| color | 26 / 30 | 6 / 300 | 0.946 | 0.883 | 0.839 |
+
+Color is slightly better on test, but one image is 3.3 points of recall, so the gap is small. Both runs miss mostly solder blobs (`melt`); missing, bent and scratched pins are all found.
+
 ## Repository layout
 
 ```
@@ -47,20 +62,23 @@ Found during EDA on the raw data, before any model was trained ([notebook](noteb
 ├── README.md
 ├── LICENSE                  Apache-2.0 (code only)
 ├── requirements.txt
-├── configs/                 benchmark settings (seed, split sizes, thresholds)
+├── configs/                 one yaml per model run (training settings)
 ├── datasets/                one folder per scenario: README with source, license and data layout
 │   ├── manufacturing_visa/
 │   ├── documents/
 │   └── retail/
 ├── pyproject.toml           makes src/vision_benchmark installable (pip install -e .)
 ├── src/vision_benchmark/    reusable code
-│   ├── data/                raw loading, orientation, split, augmentation, writing bench/
-│   ├── models/              one wrapper per model, same interface
-│   ├── evaluation/          metrics, timing, memory, cost
+│   ├── data/                raw loading, orientation, board crop, split, augmentation, writing bench/
+│   ├── models/              one wrapper per model (YOLO predictions per image)
+│   ├── evaluation/          image-level metrics, detection summary
 │   └── utils/               box helpers, plotting
-├── notebooks/               EDA, data prep and model runners (Kaggle / local)
+├── notebooks/               one folder per scenario, every notebook of that dataset
+│   ├── manufacturing/       01_eda, 02_data_prep, 03_yolo ... 08_results
+│   ├── documents/
+│   └── retail/
 ├── scripts/                 command-line entry points
-├── results/                 per-image logs, result tables, figures
+├── results/                 run folders per model and dataset (yolo/pcb1/...), figures, tables
 ├── demo/                    upload-and-compare demo app
 └── docs/                    methodology, findings, decision framework, blog, posts, diagrams
 ```
@@ -80,6 +98,7 @@ pip install -e .                      # installs the helpers in src/ for the not
 1. Put the VisA files in place as described in [datasets/manufacturing_visa/README.md](datasets/manufacturing_visa/README.md).
 2. Run `notebooks/manufacturing/01_eda.ipynb` to explore the raw data.
 3. Run `notebooks/manufacturing/02_data_prep.ipynb` to build `bench/` (about 1 minute).
+4. Train YOLO with `notebooks/manufacturing/03_yolo.ipynb` (settings in `configs/yolo26s.yaml`). The runs here trained on Kaggle (T4 x2); the notebook then reads the run folders in `results/yolo/pcb1/`.
 
 ## Licenses and attribution
 
